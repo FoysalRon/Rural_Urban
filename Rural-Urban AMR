@@ -1,0 +1,76 @@
+####################Rural-Urban AMR Analysis#######################
+setwd("R:/Research articles_on progress/AMR/A1A2AMR")
+library(dplyr)
+library(ggplot2)
+library(xlsx)
+library(data.table)
+library(reshape2)
+library(RColorBrewer) 
+library(eulerr)
+
+#Data import
+ARG_df <- read.csv("RuralUrbanARG.csv", header=T, sep=",")
+total.ARGDepth_df <- 
+    ARG_df %>% 
+    group_by(Groups, Type, Resistance) %>% 
+    summarise(totalARG = sum(Hits),
+              numARG = n())
+head(total.ARGDepth_df)
+
+#####Frequency ARG Type######
+# calculate other ARG typs
+tmp_type <- 
+    ARG_df %>% 
+    group_by(Sample, Type) %>%
+    summarise(DepthARG = sum(Hits), Groups = unique(Groups))
+head(tmp_type)
+relAbund.df <- tmp_type %>% 
+    group_by(Groups,Type) %>% summarise(avgDepth = mean(DepthARG)) %>% 
+    mutate(freq = avgDepth/sum(avgDepth)) %>%
+    reshape2::dcast(Type~Groups) %>% 
+    arrange(desc(Rural))
+head(relAbund.df)
+otherTypes <- relAbund.df$Type[11:nrow(relAbund.df) ]
+tmp_type$Type[tmp_type$Type %in% otherTypes] <- "other"
+# plot by sample with significance 
+plotDat_3bars <- tmp_type %>% filter(Type != "unclassified") %>%
+    group_by(Groups,Type ) %>% summarise(avgDepth = mean(DepthARG)) %>% 
+    mutate(freq = avgDepth/sum(avgDepth)) %>%
+    as.data.frame()
+
+plotDat_3bars %>% group_by(Groups) %>% summarise(s = sum(freq))
+mycolor<- c("#BC3C29FF","#0072B5FF","#E18727FF","#20854EFF","#7876B1FF","#6F99ADFF")
+p3<-ggplot(plotDat_3bars) +
+    geom_col(aes(x=Groups ,y =freq, fill=Type), width = 0.6,color="white") +
+    scale_fill_manual(values = mycolor)+
+    theme_bw() + theme(#axis.text.x = element_text(angle = 90),
+        panel.grid = element_blank()) 
+p3
+
+#####Frequency ARG Resistance######
+# calculate other ARG typs
+tmp_resistance <- 
+    ARG_df %>% 
+    group_by(Sample, Resistance) %>%
+    summarise(DepthARG = sum(Hits), Groups = unique(Groups))
+relAbund.df_r <- tmp_resistance %>% 
+    group_by(Groups,Resistance) %>% summarise(avgDepth = mean(DepthARG)) %>% 
+    mutate(freq = avgDepth/sum(avgDepth)) %>%
+    reshape2::dcast(Resistance~Groups) %>% 
+    arrange(desc(Rural))
+otherTypes <- relAbund.df_r$Resistance[11:nrow(relAbund.df_r) ]
+tmp_resistance$Resistance[tmp_resistance$Resistance %in% otherTypes] <- "other"
+# plot by sample with significance 
+plotDat_3bars_r <- tmp_resistance %>% filter(Resistance != "unclassified") %>%
+    group_by(Groups,Resistance ) %>% summarise(avgDepth = mean(DepthARG)) %>% 
+    mutate(freq = avgDepth/sum(avgDepth)) %>%
+    as.data.frame()
+
+plotDat_3bars_r %>% group_by(Groups) %>% summarise(s = sum(freq))
+mycolor<- c("#BC3C29FF","#0072B5FF","#E18727FF","#20854EFF","#7876B1FF","#6F99ADFF","#6A3D9A","#CDAA7D","#999999","#f95d6a","gold3")
+p4<-ggplot(plotDat_3bars_r) +
+    geom_col(aes(x=Groups ,y =freq, fill=Resistance), width = 0.6,color="white") +
+    scale_fill_manual(values = mycolor)+
+    theme_bw() + theme(axis.text.x = element_text(size=10, angle = 45, hjust =1),
+        panel.grid = element_blank()) 
+p4
